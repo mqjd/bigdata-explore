@@ -65,7 +65,8 @@ hive_start(){
 }
 
 hive_stop(){
-    ps -ef|grep -w "Dproc_metastore" | grep -v grep | awk '{print $2}' | xargs kill
+    PIDS=$(ps -ef|grep -w "Dproc_metastore" | grep -v grep | awk '{print $2}')
+    [ ! -z "$PIDS" ] && kill $PIDS
 }
 
 spark_start(){
@@ -77,4 +78,12 @@ spark_stop(){
     stop-slave.sh
     stop-master.sh
 }
+
+shell() {
+    while read -p "command> " cmd
+    do
+      $cmd
+    done
+}
+
 
