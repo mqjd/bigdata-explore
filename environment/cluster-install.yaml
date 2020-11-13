@@ -1,0 +1,112 @@
+---
+- hosts: hd
+  become: yes
+  become_user: root
+  tasks:
+    - name: create tmp package dir
+      file: path=/opt/tmp/ansible/ state=directory owner=hd group=hd
+    - name: create install package dir
+      file: path=/opt/hd/packages/ state=directory owner=hd group=hd
+    - name: chmod /tmp dir
+      file: path=/tmp state=directory mode=777
+    - name: change hostname
+      shell: hostnamectl set-hostname {{hostname|quote}}
+- hosts: hd
+  remote_user: hd
+  vars:
+    hadoop_version: 3.1.3
+    hive_version: 3.1.2
+    spark_version: 3.0.1
+    scala_version: 2.12.12
+  tasks:
+    - name: check ansible dir exists
+      shell: /usr/bin/ls /opt/tmp/ansible/packages
+      register: ansible_dir_msg
+      ignore_errors: true
+    - name: copy packages
+      copy: src=/opt/ansible/ dest=/opt/tmp/ansible/ mode=0755
+      when: ansible_dir_msg is failure
+    - name: copy manager shells
+      shell: cp -rf /opt/tmp/ansible/sbin /opt/hd/
+    - name: create conf dir
+      file: path=/opt/hd/conf state=directory
+    - name: copy sbin
+      shell: cp -rf /opt/tmp/ansible/sbin /opt/hd/
+    # jdk
+    - name: check jdk dir exists
+      shell: /usr/bin/ls /opt/hd/packages/jdk1.8.0_271
+      register: jdk_dir_msg
+      ignore_errors: true
+    - name: unarchive jdk
+      unarchive: src=/opt/tmp/ansible/packages/jdk-8u271-linux-x64.tar.gz dest=/opt/hd/packages/ copy=no mode=0755
+      when: jdk_dir_msg is failure
+    - name: link jdk dir
+      file: src=/opt/hd/packages/jdk1.8.0_271 dest=/opt/hd/jdk state=link
+    # scala
+    - name: check scala dir exists
+      shell: /usr/bin/ls /opt/hd/packages/scala-{{scala_version}}
+      register: scala_dir_msg
+      ignore_errors: true
+    - name: unarchive scala
+      unarchive: src=/opt/tmp/ansible/packages/scala-{{scala_version}}.tgz dest=/opt/hd/packages/ copy=no mode=0755
+      when: scala_dir_msg is failure
+    - name: link scala dir
+      file: src=/opt/hd/packages/scala-{{scala_version}} dest=/opt/hd/scala state=link
+    # hadoop
+    - name: check hadoop dir exists
+      shell: /usr/bin/ls /opt/hd/packages/hadoop-{{hadoop_version}}
+      register: hadoop_dir_msg
+      ignore_errors: true
+    - name: unarchive hadoop
+      unarchive: src=/opt/tmp/ansible/packages/hadoop-{{hadoop_version}}.tar.gz dest=/opt/hd/packages/ copy=no mode=0755
+      when: hadoop_dir_msg is failure
+    - name: link hadoop dir
+      file: src=/opt/hd/packages/hadoop-{{hadoop_version}} dest=/opt/hd/hadoop state=link
+    - name: create hadoop data dir
+      file: path=/opt/hd/data/hadoop state=directory
+    - name: create hadoop tmp dir
+      file: path=/opt/hd/tmp/hadoop state=directory
+    - name: copy hadoop conf
+      shell: cp -rf /opt/hd/hadoop/etc/hadoop /opt/hd/conf/
+    - name: cover hadoop conf
+      shell: cp -rf /opt/tmp/ansible/conf/hadoop /opt/hd/conf
+    - name: update hostname
+      shell: /opt/tmp/ansible/bin/update_host.sh hadoop
+    # hive
+    - name: check hive dir exists
+      shell: /usr/bin/ls /opt/hd/packages/apache-hive-{{hive_version}}-bin
+      register: hive_dir_msg
+      ignore_errors: true
+    - name: unarchive hive
+      unarchive: src=/opt/tmp/ansible/packages/apache-hive-{{hive_version}}-bin.tar.gz dest=/opt/hd/packages/ copy=no mode=0755
+      when: hive_dir_msg is failure
+    - name: link hive dir
+      file: src=/opt/hd/packages/apache-hive-{{hive_version}}-bin dest=/opt/hd/hive state=link
+    - name: create hive conf dir
+      file: path=/opt/hd/conf/hive state=directory
+    - name: copy hive conf
+      shell: cp -rf /opt/hd/hive/conf/* /opt/hd/conf/hive/
+    - name: create hive meta data dir
+      file: path=/opt/hd/data/hive/ state=directory
+    - name: cover hive conf
+      shell: cp -rf /opt/tmp/ansible/conf/hive /opt/hd/conf
+    - name: update hostname
+      shell: /opt/tmp/ansible/bin/update_host.sh hive
+    # spark
+    - name: check spark dir exists
+      shell: /usr/bin/ls /opt/hd/packages/spark-{{spark_version}}-bin-hadoop2.7
+      register: spark_dir_msg
+      ignore_errors: true
+    - name: unarchive spark
+      unarchive: src=/opt/tmp/ansible/packages/spark-{{spark_version}}-bin-hadoop2.7.tgz dest=/opt/hd/packages/ copy=no mode=0755
+      when: spark_dir_msg is failure
+    - name: link spark dir
+      file: src=/opt/hd/packages/spark-{{spark_version}}-bin-hadoop2.7 dest=/opt/hd/spark state=link
+    - name: create spark conf dir
+      file: path=/opt/hd/conf/spark state=directory
+    - name: copy spark conf
+      shell: cp -rf /opt/hd/spark/conf/* /opt/hd/conf/spark/
+    - name: add hive conf
+      shell: cp -rf /opt/tmp/ansible/conf/hive/hive-site.xml /opt/hd/conf/spark/
+    - name: update hostname
+      shell: /opt/tmp/ansible/bin/update_host.sh spark
