@@ -1,15 +1,15 @@
 #!/bin/bash
 SHELL_HOME=$(cd $(dirname ${BASH_SOURCE:-$0});pwd)
-source $SHELL_HOME/bigdata_env.sh
+source ${SHELL_HOME}/bigdata_env.sh
 
 hdfs_init(){
     hdfs namenode -format
 }
 
 hive_init(){
-    cd $HIVE_HOME
-    rm -f $HIVE_HOME/lib/guava-*.jar
-    cp $HADOOP_HOME/share/hadoop/common/lib/guava-*.jar $HIVE_HOME/lib/
+    cd ${HIVE_HOME}
+    rm -f ${HIVE_HOME}/lib/guava-*.jar
+    cp ${HADOOP_HOME}/share/hadoop/common/lib/guava-*.jar ${HIVE_HOME}/lib/
     schematool -initSchema -dbType derby
 }
 
@@ -66,7 +66,7 @@ hive_start(){
 
 hive_stop(){
     PIDS=$(ps -ef|grep -w "Dproc_metastore" | grep -v grep | awk '{print $2}')
-    [ ! -z "$PIDS" ] && kill $PIDS
+    [[ ! -z "$PIDS" ]] && kill ${PIDS}
 }
 
 spark_start(){
